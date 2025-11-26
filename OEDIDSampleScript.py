@@ -10,13 +10,16 @@ BASE = (
     "2025/resstock_amy2018_release_1"
 )
 
-# where to store the sample locally - directly in OEDIDataset folder
-LOCAL_DIR = Path(__file__).parent.parent / "OEDIDataset"
-LOCAL_DIR.mkdir(parents=True, exist_ok=True)
-print("Local download dir:", LOCAL_DIR)
+# Where to store the sample locally:
+# OEDIDataset/timeseries_individual/by_state/upgrade=0/state=MA
+ROOT = Path(__file__).parent.parent / "OEDIDataset"
+STATE_DIR = ROOT / "timeseries_individual" / "by_state" / "upgrade=0" / f"state={STATE}"
+STATE_DIR.mkdir(parents=True, exist_ok=True)
+
+print("Local state download dir:", STATE_DIR)
 
 
-def list_state_keys(state=STATE):
+def list_state_keys(state: str = STATE):
     """
     List all object keys (filenames) for a given state's individual-building
     timeseries, baseline upgrade=0.
@@ -39,7 +42,7 @@ def list_state_keys(state=STATE):
     return keys
 
 
-def aws_cp(s3_uri, dest_path):
+def aws_cp(s3_uri: str, dest_path: Path):
     """Wrapper around 'aws s3 cp' using the public --no-sign-request flag."""
     cmd = ["aws", "s3", "cp", s3_uri, str(dest_path), "--no-sign-request"]
     print("Downloading:", s3_uri, "->", dest_path)
@@ -58,7 +61,7 @@ print(f"Downloading first {len(sample_keys)} files...")
 
 for key in sample_keys:
     s3_uri = f"{BASE}/timeseries_individual_buildings/by_state/upgrade=0/state={STATE}/{key}"
-    dest = LOCAL_DIR / key
+    dest = STATE_DIR / key
     aws_cp(s3_uri, dest)
 
 print("Done!")

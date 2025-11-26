@@ -95,42 +95,88 @@ def load_dictionaries() -> Dict[str, Optional[pd.DataFrame]]:
 
 def build_timeseries_index() -> pd.DataFrame:
     """
-    Build an index of the individual-building timeseries parquet files
-    that live directly under OEDIDataset (not in subfolders).
+    Build an index of the individual-building timeseries parquet files.
 
-    Returns a DataFrame with:
-      - building_id (int or str)
-      - upgrade_id (int)
-      - file_path (Path)
+    Preferred folder layout (mirroring S3):
+
+        OEDIDataset/
+          timeseries_individual/
+            by_state/
+              upgrade=<upgrade_id>/
+                state=<STATE>/
+                  <building_id>-<upgrade_id>.parquet
+
+    This function will:
+
+      * search recursively under OEDIDataset/timeseries_individual/by_state
+        if it exists, OR
+      * fall back to searching for *.parquet directly under OEDIDataset
+        (legacy layout) if the new tree is missing.
+
+    Returns a DataFrame with columns:
+      - building_id  (int or str)
+      - upgrade_id   (int or str)
+      - state        (str or None)
+      - file_path    (Path)
     """
-    # Only files directly under ROOT, not recursive
-    parquet_files = sorted(ROOT.glob("*.parquet"))
+    ts_root = ROOT / "timeseries_individual" / "by_state"
     rows: List[Dict[str, Any]] = []
 
+    if ts_root.exists():
+        parquet_files = sorted(ts_root.glob("**/*.parquet"))
+        print(
+            f"[build_timeseries_index] Searching {len(parquet_files)} parquet files "
+            f"under {ts_root} (recursive)"
+        )
+    else:
+        # Legacy behavior: look for parquets directly under ROOT
+        parquet_files = sorted(ROOT.glob("*.parquet"))
+        print(
+            f"[build_timeseries_index] timeseries_individual/by_state not found; "
+            f"searching {len(parquet_files)} parquet files directly under {ROOT}"
+        )
+
     for p in parquet_files:
-        # Filenames look like "<building_id>-<upgrade>.parquet"
-        stem = p.stem  # e.g. "1234567-0"
+        stem = p.stem  # expected "<building_id>-<upgrade_id>"
         parts = stem.split("-")
         if len(parts) != 2:
-            # Skip unexpected names just in case
             print(f"[build_timeseries_index] Skipping unexpected file name: {p.name}")
             continue
 
         bldg_id_str, upgrade_str = parts
+        # Parse building_id
         try:
             bldg_id = int(bldg_id_str)
         except ValueError:
             bldg_id = bldg_id_str  # fallback to string
 
+        # Parse upgrade from filename
         try:
-            upgrade_id = int(upgrade_str)
+            upgrade_from_name: Any = int(upgrade_str)
         except ValueError:
-            upgrade_id = upgrade_str
+            upgrade_from_name = upgrade_str
+
+        # Try to infer state and upgrade from path segments
+        state: Optional[str] = None
+        upgrade_from_dir: Optional[Any] = None
+        for part in p.parts:
+            if part.startswith("state="):
+                state = part.split("=", 1)[1]
+            elif part.startswith("upgrade="):
+                val = part.split("=", 1)[1]
+                try:
+                    upgrade_from_dir = int(val)
+                except ValueError:
+                    upgrade_from_dir = val
+
+        # Prefer upgrade inferred from directory; fall back to filename
+        upgrade_id = upgrade_from_dir if upgrade_from_dir is not None else upgrade_from_name
 
         rows.append(
             {
                 "building_id": bldg_id,
                 "upgrade_id": upgrade_id,
+                "state": state,
                 "file_path": p,
             }
         )
@@ -152,20 +198,19 @@ def load_timeseries_for_buildings(
     ----------
     ts_index : DataFrame
         Output of build_timeseries_index() with columns:
-        ['building_id', 'upgrade_id', 'file_path'].
+        ['building_id', 'upgrade_id', 'file_path', 'state'].
     building_ids : list[int] or None
         If provided, restrict to this set of building IDs.
     n_files : int or None
         If provided, load at most n_files buildings (helpful to avoid
-        loading all 1000 into memory at once).
+        loading too many into memory at once).
 
     Returns
     -------
     DataFrame with columns including:
       - building_id
       - upgrade_id
-      - Time / TimeUTC / TimeDST (depending on the parquet)
-      - out.*.energy_consumption (end-use columns)
+      - (plus original columns from each parquet, e.g. Time/TimeUTC/TimeDST, out.*)
     """
     subset = ts_index.copy()
 
@@ -186,6 +231,7 @@ def load_timeseries_for_buildings(
         df = table.to_pandas()
 
         # Attach building info to each row
+        df["bldg_id"] = bldg_id  # keep original naming you used downstream
         df["building_id"] = bldg_id
         df["upgrade_id"] = upgrade_id
 
@@ -238,8 +284,8 @@ def load_all() -> Dict[str, Any]:
     Convenience function to load:
       - metadata
       - dictionaries
-      - timeseries index
-      - state aggregates (MA by default)
+      - timeseries index (any states present under timeseries_individual/by_state)
+      - state aggregates for MA by default
 
     Returns a dict:
       {
