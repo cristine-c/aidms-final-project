@@ -8,64 +8,43 @@ Historically, residential customers have paid for electricity using flat tariffs
 ## Core Research Questions
 
 1. **RQ1 — Current Utility Pricing Mechanism:**  
-   How does the current (flat, IBR, ToU, and RTP) pricing model compare on economic efficiency metrics?
+   How does the current (flat, IBR, ToU, and RTP) pricing model compare for consumers?
 
 2. **RQ2 — Distributional Fairness:**  
-   How is the current pricing model, how are electricity bills and energy burdens distributed across demographic and structural groups (e.g., income, renter vs owner, region/climate)?
+   How is the current pricing model, how are electricity bills and energy burdens distributed across demographic and structural groups (e.g., income, renter vs owner, metro region)?
 
-3. **RQ3 — Risk, Volatility, and Trade-offs:**  
+3. **RQ3 — Comparisons Across Utility Pricing Mechanism:**  
    Under (different pricing models), are there models that perform reasonably well on both efficiency and fairness, or are trade-offs unavoidable?
 
 ---
 
 ## RQ1 – Efficiency of Pricing Models
 
-**Goal:** Compare the current utility pricing models (flat, IBR, ToU, and RTP) on economic efficiency metrics including cost recovery, peak demand reduction, and load-shifting effectiveness.
+**Goal:** Compare the current utility pricing models (flat, IBR, ToU, and RTP).
 
 ### A. Dataset / Feature Requirements
 
-- Household-level time-series load profiles (15-min or hourly) for at least one representative year.
+- Household-level time-series load profiles (15-min) for at least one representative year.
 - Current tariff definitions for each pricing model:
   - **Flat rate:** single price per kWh (e.g., $0.12/kWh).
-  - **IBR (Inclining Block Rate):** block thresholds (e.g., 0-500 kWh, 500-1000 kWh, >1000 kWh) and per-block prices.
-  - **ToU (Time-of-Use):** on-peak, off-peak, and mid-peak time windows with associated prices (including weekday/weekend distinctions).
-  - **RTP (Real-Time Pricing):** hourly price time series aligned with load data (from wholesale market or utility RTP tariff).
-- System cost data:
-  - Marginal generation cost ($/kWh) or time-varying wholesale electricity prices.
-  - Capacity cost proxy ($/kW-month) for peak demand costs.
-  - Total system costs for cost-recovery analysis.
+  - **ToU (Time-of-Use):** on-peak, off-peak, and conservative time windows with associated prices (including weekday/weekend distinctions).
+  - **RTP (Real-Time Pricing):** price time series aligned with load data (from utility RTP tariff).
 
 ### B. Steps to Answer RQ1
 
-- [ ] **Select region and sample households**  
-  Choose 1-2 climate regions and building types (e.g., single-family homes in California or Texas) and downsample to a manageable N (e.g., 500-2000 households).
-
-- [ ] **Gather current pricing data**  
-  Obtain actual tariff structures from utilities for flat, IBR, ToU, and RTP rates; collect wholesale electricity price data or marginal cost estimates for the same region/period.
-
-- [ ] **Align and clean time series**  
+- [ ] **Load and clean time series**  
   Ensure each household has a complete year of load at uniform time steps; align timestamps with ToU windows and RTP prices (handle time zones, DST, weekdays/weekends).
 
 - [ ] **Implement tariff calculators**  
   Write modular functions (`bill_flat`, `bill_ibr`, `bill_tou`, `bill_rtp`) that calculate monthly and annual bills per household, including fixed charges if applicable.
 
-- [ ] **Compute economic efficiency metrics**  
-  For each pricing model:
-  - Aggregate household loads to compute system-level load curves.
-  - Calculate total revenue from bills and total system costs.
-  - Identify system peak demand and compare across tariffs.
-  - Compute load-shifting metrics (peak-to-average ratio, load factor).
+- [ ] **Select region and sample households**  
+  Choose 1-2 climate regions and building types (e.g., single-family homes in California or Texas) and downsample to a manageable N (e.g., 500-2000 households).
 
 - [ ] **Compare and rank pricing models**  
   Build a summary table comparing efficiency metrics across all four tariff types; identify which models best align revenue with costs and reduce peak demand.
 
 ### C. Metrics & Plots for RQ1
-
-**Metrics (compute all 3):**
-- **Cost recovery ratio:** `total_revenue / total_cost` for each pricing model (target: close to 1.0 for revenue neutrality).
-- **Peak reduction (vs. flat baseline):** `(Peak_flat - Peak_tariff) / Peak_flat` × 100% for IBR, ToU, and RTP.
-- **Economic efficiency score:** Combined metric incorporating cost recovery accuracy and peak reduction effectiveness.
-
 **Additional metrics:**
 - **Load factor:** `average_load / peak_load` by tariff (higher is better for grid efficiency).
 - **Revenue volatility:** Standard deviation of monthly revenues across the year by tariff.
