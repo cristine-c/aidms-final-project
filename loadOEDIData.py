@@ -182,6 +182,7 @@ def build_timeseries_index() -> pd.DataFrame:
         )
 
     ts_index = pd.DataFrame(rows)
+    
     print("[build_timeseries_index] Found timeseries files:", ts_index.shape[0])
     return ts_index
 

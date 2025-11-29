@@ -3,7 +3,7 @@ from pathlib import Path
 
 # --- CONFIG ---
 STATE = "MA"                 # which state to sample from
-N_FILES = 1000               # how many buildings to download
+N_FILES = 100                 # how many buildings to download
 BASE = (
     "s3://oedi-data-lake/"
     "nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/"
