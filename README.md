@@ -7,11 +7,11 @@ Historically, residential customers have paid for electricity using flat tariffs
 
 ## Core Research Questions
 
-1. **RQ1 — Current Utility Pricing Mechanism:**  
-   How does the current (flat, IBR, ToU, and RTP) pricing model compare on economic efficiency metrics?
+1. **RQ1 — Pricing Model Comparison:**  
+   How do different retail electricity tariff structures (flat rate, time-of-use, dynamic/real-time pricing) affect total annual bills and the distribution of costs across households with different characteristics?
 
 2. **RQ2 — Distributional Fairness:**  
-   How is the current pricing model, how are electricity bills and energy burdens distributed across demographic and structural groups (e.g., income, renter vs owner, region/climate)?
+   How are electricity bills and energy burdens distributed across demographic groups (income levels, renter vs owner, urban/suburban/rural) under different pricing models?
 
 3. **RQ3 — Risk, Volatility, and Trade-offs:**  
    Under (different pricing models), are there models that perform reasonably well on both efficiency and fairness, or are trade-offs unavoidable?
@@ -20,7 +20,7 @@ Historically, residential customers have paid for electricity using flat tariffs
 
 ## RQ1 – Efficiency of Pricing Models
 
-**Goal:** Compare the current utility pricing models (flat, IBR, ToU, and RTP) on economic efficiency metrics including cost recovery, peak demand reduction, and load-shifting effectiveness.
+**Goal:** Compare different retail electricity tariff structures (flat rate, time-of-use, dynamic/real-time pricing) on household bill impacts and distributional outcomes using real load-profile data from Massachusetts residential buildings.
 
 ### A. Dataset / Feature Requirements
 
@@ -37,17 +37,17 @@ Historically, residential customers have paid for electricity using flat tariffs
 
 ### B. Steps to Answer RQ1
 
-- [ ] **Select region and sample households**  
-  Choose 1-2 climate regions and building types (e.g., single-family homes in California or Texas) and downsample to a manageable N (e.g., 500-2000 households).
+- [x] **Select region and sample households**  
+  Selected Massachusetts (MA) residential buildings from NREL ResStock AMY2018 dataset; using 500-building sample with option to scale to full 11,000+ MA buildings.
 
-- [ ] **Gather current pricing data**  
-  Obtain actual tariff structures from utilities for flat, IBR, ToU, and RTP rates; collect wholesale electricity price data or marginal cost estimates for the same region/period.
+- [x] **Gather current pricing data**  
+  Obtained Massachusetts utility tariff structures for flat, ToU rates; collected ISONE real-time locational marginal pricing (RT-LMP) data for dynamic pricing analysis.
 
-- [ ] **Align and clean time series**  
-  Ensure each household has a complete year of load at uniform time steps; align timestamps with ToU windows and RTP prices (handle time zones, DST, weekdays/weekends).
+- [x] **Align and clean time series**  
+  Loaded and validated 15-minute load profiles for each household with complete year of data; aligned timestamps with ToU windows and RTP prices, handling weekday/weekend distinctions.
 
-- [ ] **Implement tariff calculators**  
-  Write modular functions (`bill_flat`, `bill_ibr`, `bill_tou`, `bill_rtp`) that calculate monthly and annual bills per household, including fixed charges if applicable.
+- [x] **Implement tariff calculators**  
+  Built modular pricing functions (flat, TOU, dynamic) with optimized vectorized operations; implemented generic bill calculator that processes all tariffs in single pass.
 
 - [ ] **Compute economic efficiency metrics**  
   For each pricing model:
@@ -57,7 +57,7 @@ Historically, residential customers have paid for electricity using flat tariffs
   - Compute load-shifting metrics (peak-to-average ratio, load factor).
 
 - [ ] **Compare and rank pricing models**  
-  Build a summary table comparing efficiency metrics across all four tariff types; identify which models best align revenue with costs and reduce peak demand.
+  Build a summary table comparing efficiency metrics across all tariff types; identify which models best align revenue with costs and reduce peak demand.
 
 ### C. Metrics & Plots for RQ1
 
@@ -90,7 +90,7 @@ Historically, residential customers have paid for electricity using flat tariffs
 
 ## RQ2 – Distributional Fairness Across Groups
 
-**Goal:** Analyze how the current pricing model distributes electricity bills and energy burdens across demographic and structural household groups (income levels, renter vs. owner, region/climate) and identify which groups face disproportionate costs.
+**Goal:** Analyze how different pricing models (flat, TOU, dynamic) distribute electricity bills and energy burdens across demographic household groups (income levels, tenure status, urban/suburban/rural) and identify which groups face disproportionate costs under each tariff structure.
 
 ### A. Dataset / Feature Requirements
 
@@ -117,31 +117,34 @@ building_sqft
 
 ### B. Steps to Answer RQ2
 
-- [ ] **Create synthetic population with demographic attributes**  
-  Use survey data (RECS, Census) to estimate income, tenure, and regional distributions; map these attributes onto load profiles by matching region, building type, and size.
+- [x] **Create synthetic population with demographic attributes**  
+  Used NREL ResStock metadata including representative income, federal poverty level, tenure status, PUMA metro status, building type, and county.
 
-- [ ] **Compute bills under current pricing model**  
-  Use the current/default tariff calculator (e.g., flat rate or prevailing ToU) to compute monthly and annual bills for each household.
+- [x] **Compute bills under multiple pricing models**  
+  Computed annual bills for all households under flat, TOU, and dynamic tariff structures.
 
-- [ ] **Calculate energy burdens**  
-  For each household, compute energy burden as `annual_bill / annual_income` × 100%.
+- [x] **Calculate energy burdens**  
+  Computed PIU (Percentage of Income spent on Utilities) for each household under all three tariffs as `(annual_bill / annual_income) × 100%`.
 
-- [ ] **Segment households into groups**  
-  Group households by:
-  - Income level (e.g., quartiles or low/middle/high brackets).
-  - Tenure (renter vs. owner).
-  - Region/climate zone.
-  - Cross-segments (e.g., low-income renters, high-income owners).
+- [x] **Segment households into groups**  
+  Grouped households by:
+  - Federal Poverty Level (0-100%, 100-150%, 150-200%, 200-300%, 300-400%, 400%+)
+  - Tenure (owner vs. renter)
+  - Metro status (urban/principal city, suburban/not in principal city, rural/not in metro)
+  - Building type (single-family detached, single-family attached, multi-family, mobile home)
 
-- [ ] **Compute distributional statistics by group**  
-  For each group, calculate:
-  - Mean and median annual bills.
-  - Mean and median energy burdens.
-  - Share of households with high energy burden (≥6% or ≥10%).
-  - Bill distribution (percentiles, interquartile range).
+- [x] **Compute distributional statistics by group**  
+  For each group and tariff, calculated:
+  - Mean and median annual bills and PIU
+  - Summary statistics (count, std, min, max)
+  - Share of households with high energy burden (>3% and >6% PIU)
+  - Bill and burden distributions with boxplots
 
-- [ ] **Identify disparities and vulnerable groups**  
-  Compare statistics across groups to identify which demographic segments face the highest bills, energy burdens, or burden rates; quantify disparities (e.g., low-income vs. high-income burden ratio).
+- [x] **Identify disparities and vulnerable groups**  
+  Identified key disparities:
+  - 96.9% of 0-100% FPL households exceed 6% burden under flat tariff
+  - Renters face 2× higher burden than owners (35.4% vs 17.2% exceed 6% under flat)
+  - Rural households face highest burden (38.9% exceed 6% under flat vs 22.3% suburban)
 ### C. Metrics & Plots for RQ2
 
 **Metrics (compute all):**
