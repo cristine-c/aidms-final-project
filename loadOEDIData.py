@@ -9,37 +9,51 @@ import pyarrow.parquet as pq
 ROOT = Path(__file__).parent.parent / "OEDIDataset"
 
 
-def load_metadata() -> Optional[pd.DataFrame]:
+def load_metadata(verbose: bool = True) -> Optional[pd.DataFrame]:
     """
     Load all metadata parquet files in OEDIDataset/metadata into a single DataFrame.
     Returns None if no metadata parquet files are found.
+    
+    Parameters
+    ----------
+    verbose : bool
+        If True, print progress messages. Default is True.
     """
     meta_dir = ROOT / "metadata"
     if not meta_dir.exists():
-        print("[load_metadata] metadata directory does not exist:", meta_dir)
+        if verbose:
+            print("[load_metadata] metadata directory does not exist:", meta_dir)
         return None
 
     parquet_files = sorted(meta_dir.glob("*.parquet"))
     if not parquet_files:
-        print("[load_metadata] No .parquet files found in:", meta_dir)
+        if verbose:
+            print("[load_metadata] No .parquet files found in:", meta_dir)
         return None
 
     dfs = []
     for p in parquet_files:
-        print(f"[load_metadata] Reading {p.name} ...")
+        if verbose:
+            print(f"[load_metadata] Reading {p.name} ...")
         table = pq.read_table(p)
         dfs.append(table.to_pandas())
 
     meta_df = pd.concat(dfs, ignore_index=True)
-    print("[load_metadata] Combined metadata shape:", meta_df.shape)
+    if verbose:
+        print("[load_metadata] Combined metadata shape:", meta_df.shape)
     return meta_df
 
 
-def load_dictionaries() -> Dict[str, Optional[pd.DataFrame]]:
+def load_dictionaries(verbose: bool = True) -> Dict[str, Optional[pd.DataFrame]]:
     """
     Load data_dictionary.tsv and enumeration_dictionary.tsv (if present)
     from OEDIDataset/dictionaries.
     Returns a dict of DataFrames (or None if file missing).
+    
+    Parameters
+    ----------
+    verbose : bool
+        If True, print progress messages. Default is True.
     """
     dict_dir = ROOT / "dictionaries"
     out: Dict[str, Optional[pd.DataFrame]] = {
@@ -48,7 +62,8 @@ def load_dictionaries() -> Dict[str, Optional[pd.DataFrame]]:
     }
 
     if not dict_dir.exists():
-        print("[load_dictionaries] dictionaries directory does not exist:", dict_dir)
+        if verbose:
+            print("[load_dictionaries] dictionaries directory does not exist:", dict_dir)
         return out
 
     data_dict_path = dict_dir / "data_dictionary.tsv"
@@ -56,44 +71,51 @@ def load_dictionaries() -> Dict[str, Optional[pd.DataFrame]]:
 
     # --- data_dictionary.tsv ---
     if data_dict_path.exists():
-        print("[load_dictionaries] Reading data_dictionary.tsv ...")
+        if verbose:
+            print("[load_dictionaries] Reading data_dictionary.tsv ...")
         out["data_dictionary"] = pd.read_csv(
             data_dict_path, sep="\t", encoding="utf-8"
         )
-        print(
-            "[load_dictionaries] data_dictionary shape:",
-            out["data_dictionary"].shape,
-        )
+        if verbose:
+            print(
+                "[load_dictionaries] data_dictionary shape:",
+                out["data_dictionary"].shape,
+            )
     else:
-        print("[load_dictionaries] data_dictionary.tsv not found")
+        if verbose:
+            print("[load_dictionaries] data_dictionary.tsv not found")
 
     # --- enumeration_dictionary.tsv ---
     if enum_dict_path.exists():
-        print("[load_dictionaries] Reading enumeration_dictionary.tsv ...")
+        if verbose:
+            print("[load_dictionaries] Reading enumeration_dictionary.tsv ...")
         try:
             # try utf-8 first
             out["enumeration_dictionary"] = pd.read_csv(
                 enum_dict_path, sep="\t", encoding="utf-8"
             )
         except UnicodeDecodeError:
-            print(
-                "[load_dictionaries] UTF-8 decode failed, retrying with latin-1 ..."
-            )
+            if verbose:
+                print(
+                    "[load_dictionaries] UTF-8 decode failed, retrying with latin-1 ..."
+                )
             out["enumeration_dictionary"] = pd.read_csv(
                 enum_dict_path, sep="\t", encoding="latin-1"
             )
 
-        print(
-            "[load_dictionaries] enumeration_dictionary shape:",
-            out["enumeration_dictionary"].shape,
-        )
+        if verbose:
+            print(
+                "[load_dictionaries] enumeration_dictionary shape:",
+                out["enumeration_dictionary"].shape,
+            )
     else:
-        print("[load_dictionaries] enumeration_dictionary.tsv not found")
+        if verbose:
+            print("[load_dictionaries] enumeration_dictionary.tsv not found")
 
     return out
 
 
-def build_timeseries_index() -> pd.DataFrame:
+def build_timeseries_index(verbose: bool = True) -> pd.DataFrame:
     """
     Build an index of the individual-building timeseries parquet files.
 
@@ -118,23 +140,30 @@ def build_timeseries_index() -> pd.DataFrame:
       - upgrade_id   (int or str)
       - state        (str or None)
       - file_path    (Path)
+    
+    Parameters
+    ----------
+    verbose : bool
+        If True, print progress messages. Default is True.
     """
     ts_root = ROOT / "timeseries_individual" / "by_state"
     rows: List[Dict[str, Any]] = []
 
     if ts_root.exists():
         parquet_files = sorted(ts_root.glob("**/*.parquet"))
-        print(
-            f"[build_timeseries_index] Searching {len(parquet_files)} parquet files "
-            f"under {ts_root} (recursive)"
-        )
+        if verbose:
+            print(
+                f"[build_timeseries_index] Searching {len(parquet_files)} parquet files "
+                f"under {ts_root} (recursive)"
+            )
     else:
         # Legacy behavior: look for parquets directly under ROOT
         parquet_files = sorted(ROOT.glob("*.parquet"))
-        print(
-            f"[build_timeseries_index] timeseries_individual/by_state not found; "
-            f"searching {len(parquet_files)} parquet files directly under {ROOT}"
-        )
+        if verbose:
+            print(
+                f"[build_timeseries_index] timeseries_individual/by_state not found; "
+                f"searching {len(parquet_files)} parquet files directly under {ROOT}"
+            )
 
     for p in parquet_files:
         stem = p.stem  # expected "<building_id>-<upgrade_id>"
@@ -183,7 +212,8 @@ def build_timeseries_index() -> pd.DataFrame:
 
     ts_index = pd.DataFrame(rows)
     
-    print("[build_timeseries_index] Found timeseries files:", ts_index.shape[0])
+    if verbose:
+        print("[build_timeseries_index] Found timeseries files:", ts_index.shape[0])
     return ts_index
 
 
@@ -191,6 +221,7 @@ def load_timeseries_for_buildings(
     ts_index: pd.DataFrame,
     building_ids: Optional[List[int]] = None,
     n_files: Optional[int] = None,
+    verbose: bool = True,
 ) -> pd.DataFrame:
     """
     Load timeseries for a subset of buildings into a single pandas DataFrame.
@@ -205,6 +236,8 @@ def load_timeseries_for_buildings(
     n_files : int or None
         If provided, load at most n_files buildings (helpful to avoid
         loading too many into memory at once).
+    verbose : bool
+        If True, print progress messages. Default is True.
 
     Returns
     -------
@@ -227,7 +260,8 @@ def load_timeseries_for_buildings(
         bldg_id = row["building_id"]
         upgrade_id = row["upgrade_id"]
 
-        print(f"[load_timeseries_for_buildings] Reading {path.name} ...")
+        if verbose:
+            print(f"[load_timeseries_for_buildings] Reading {path.name} ...")
         table = pq.read_table(path)
         df = table.to_pandas()
 
@@ -239,20 +273,29 @@ def load_timeseries_for_buildings(
         dfs.append(df)
 
     if not dfs:
-        print("[load_timeseries_for_buildings] No files selected, returning empty DataFrame")
+        if verbose:
+            print("[load_timeseries_for_buildings] No files selected, returning empty DataFrame")
         return pd.DataFrame()
 
     ts_df = pd.concat(dfs, ignore_index=True)
-    print("[load_timeseries_for_buildings] Combined timeseries shape:", ts_df.shape)
+    if verbose:
+        print("[load_timeseries_for_buildings] Combined timeseries shape:", ts_df.shape)
     return ts_df
 
 
-def load_state_aggregates(state: str = "MA") -> Optional[pd.DataFrame]:
+def load_state_aggregates(state: str = "MA", verbose: bool = True) -> Optional[pd.DataFrame]:
     """
     Load state-level aggregate timeseries for a given state (if present).
 
     Files live under:
       OEDIDataset/timeseries_aggregates/by_state/state=XX/*.csv
+
+    Parameters
+    ----------
+    state : str
+        State abbreviation (default: "MA").
+    verbose : bool
+        If True, print progress messages. Default is True.
 
     Returns
     -------
@@ -260,33 +303,42 @@ def load_state_aggregates(state: str = "MA") -> Optional[pd.DataFrame]:
     """
     agg_dir = ROOT / "timeseries_aggregates" / "by_state" / f"state={state}"
     if not agg_dir.exists():
-        print("[load_state_aggregates] Aggregate directory does not exist:", agg_dir)
+        if verbose:
+            print("[load_state_aggregates] Aggregate directory does not exist:", agg_dir)
         return None
 
     csv_files = sorted(agg_dir.glob("*.csv"))
     if not csv_files:
-        print("[load_state_aggregates] No CSV aggregate files found in:", agg_dir)
+        if verbose:
+            print("[load_state_aggregates] No CSV aggregate files found in:", agg_dir)
         return None
 
     dfs = []
     for p in csv_files:
-        print(f"[load_state_aggregates] Reading {p.name} ...")
+        if verbose:
+            print(f"[load_state_aggregates] Reading {p.name} ...")
         df = pd.read_csv(p)
         df["source_file"] = p.name
         dfs.append(df)
 
     agg_df = pd.concat(dfs, ignore_index=True)
-    print("[load_state_aggregates] Combined aggregate shape:", agg_df.shape)
+    if verbose:
+        print("[load_state_aggregates] Combined aggregate shape:", agg_df.shape)
     return agg_df
 
 
-def load_all() -> Dict[str, Any]:
+def load_all(verbose: bool = True) -> Dict[str, Any]:
     """
     Convenience function to load:
       - metadata
       - dictionaries
       - timeseries index (any states present under timeseries_individual/by_state)
       - state aggregates for MA by default
+
+    Parameters
+    ----------
+    verbose : bool
+        If True, print progress messages. Default is True.
 
     Returns a dict:
       {
@@ -297,11 +349,12 @@ def load_all() -> Dict[str, Any]:
         "state_aggregates": DataFrame or None,
       }
     """
-    print("=== Loading OEDI dataset pieces ===")
-    meta_df = load_metadata()
-    dicts = load_dictionaries()
-    ts_index = build_timeseries_index()
-    agg_df = load_state_aggregates(state="MA")
+    if verbose:
+        print("=== Loading OEDI dataset pieces ===")
+    meta_df = load_metadata(verbose=verbose)
+    dicts = load_dictionaries(verbose=verbose)
+    ts_index = build_timeseries_index(verbose=verbose)
+    agg_df = load_state_aggregates(state="MA", verbose=verbose)
 
     all_data: Dict[str, Any] = {
         "metadata": meta_df,
@@ -311,7 +364,8 @@ def load_all() -> Dict[str, Any]:
         "state_aggregates": agg_df,
     }
 
-    print("=== Done loading OEDI dataset pieces ===")
+    if verbose:
+        print("=== Done loading OEDI dataset pieces ===")
     return all_data
 
 

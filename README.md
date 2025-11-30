@@ -7,84 +7,61 @@ Historically, residential customers have paid for electricity using flat tariffs
 
 ## Core Research Questions
 
-1. **RQ1 — Pricing Model Comparison:**  
-   How do different retail electricity tariff structures (flat rate, time-of-use, dynamic/real-time pricing) affect total annual bills and the distribution of costs across households with different characteristics?
+**RQ1 — Pricing Model Comparison:**  
+How do different retail electricity tariff structures (flat rate, time-of-use, dynamic/real-time pricing) affect total annual bills and the distribution of costs across households with different characteristics?
 
-2. **RQ2 — Distributional Fairness:**  
-   How are electricity bills and energy burdens distributed across demographic groups (income levels, renter vs owner, urban/suburban/rural) under different pricing models?
-
-3. **RQ3 — Risk, Volatility, and Trade-offs:**  
-   Under (different pricing models), are there models that perform reasonably well on both efficiency and fairness, or are trade-offs unavoidable?
+**RQ2 — Distributional Fairness:**  
+How are electricity bills and energy burdens distributed across demographic groups (income levels, renter vs owner, urban/suburban/rural) under different pricing models?
 
 ---
 
-## RQ1 – Efficiency of Pricing Models
+## RQ1 – Pricing Model Comparison
 
-**Goal:** Compare different retail electricity tariff structures (flat rate, time-of-use, dynamic/real-time pricing) on household bill impacts and distributional outcomes using real load-profile data from Massachusetts residential buildings.
+**Goal:** Compare how different retail electricity tariff structures (flat rate, time-of-use, dynamic/real-time pricing) affect household-level annual bills using real load-profile data from Massachusetts residential buildings.
 
-### A. Dataset / Feature Requirements
+### A. Data Sources
 
-- Household-level time-series load profiles (15-min or hourly) for at least one representative year.
-- Current tariff definitions for each pricing model:
-  - **Flat rate:** single price per kWh (e.g., $0.12/kWh).
-  - **IBR (Inclining Block Rate):** block thresholds (e.g., 0-500 kWh, 500-1000 kWh, >1000 kWh) and per-block prices.
-  - **ToU (Time-of-Use):** on-peak, off-peak, and mid-peak time windows with associated prices (including weekday/weekend distinctions).
-  - **RTP (Real-Time Pricing):** hourly price time series aligned with load data (from wholesale market or utility RTP tariff).
-- System cost data:
-  - Marginal generation cost ($/kWh) or time-varying wholesale electricity prices.
-  - Capacity cost proxy ($/kW-month) for peak demand costs.
-  - Total system costs for cost-recovery analysis.
+- **Load profiles:** NREL ResStock AMY2018 dataset - 15-minute interval electricity consumption for 11,000+ Massachusetts residential buildings
+- **Tariff structures:**
+  - **Flat rate:** $0.233/kWh (Massachusetts average residential rate)
+  - **Time-of-Use (TOU):** Daytime 8 AM-8 PM (\$0.1211/kWh), evenings/weekends/holidays (\$0.0991/kWh), peak events (\$0.6137/kWh for up to 8 hours on up to 30 Conservation Days per year, ~5 hours/week average)
+  - **Dynamic pricing:** ISO New England real-time locational marginal pricing (RT-LMP) data aligned to 15-minute intervals
 
-### B. Steps to Answer RQ1
+### B. Completed Analysis Steps
 
-- [x] **Select region and sample households**  
-  Selected Massachusetts (MA) residential buildings from NREL ResStock AMY2018 dataset; using 500-building sample with option to scale to full 11,000+ MA buildings.
-
-- [x] **Gather current pricing data**  
-  Obtained Massachusetts utility tariff structures for flat, ToU rates; collected ISONE real-time locational marginal pricing (RT-LMP) data for dynamic pricing analysis.
-
-- [x] **Align and clean time series**  
-  Loaded and validated 15-minute load profiles for each household with complete year of data; aligned timestamps with ToU windows and RTP prices, handling weekday/weekend distinctions.
+- [x] **Load and validate household data**  
+  Loaded 11,000+ Massachusetts residential building load profiles (15-minute intervals, full year); validated data completeness and identified 500-building representative sample for initial analysis.
 
 - [x] **Implement tariff calculators**  
-  Built modular pricing functions (flat, TOU, dynamic) with optimized vectorized operations; implemented generic bill calculator that processes all tariffs in single pass.
+  Built optimized vectorized bill calculation functions for flat, TOU, and dynamic pricing; implemented chunked processing for memory-efficient computation on full dataset.
 
-- [ ] **Compute economic efficiency metrics**  
-  For each pricing model:
-  - Aggregate household loads to compute system-level load curves.
-  - Calculate total revenue from bills and total system costs.
-  - Identify system peak demand and compare across tariffs.
-  - Compute load-shifting metrics (peak-to-average ratio, load factor).
+- [x] **Compute annual bills under all tariffs**  
+  Calculated total annual electricity costs for each household under all three pricing structures.
 
-- [ ] **Compare and rank pricing models**  
-  Build a summary table comparing efficiency metrics across all tariff types; identify which models best align revenue with costs and reduce peak demand.
+- [x] **Analyze bill distributions**  
+  Generated summary statistics, histograms, and boxplots showing annual bill distributions across all households and by Federal Poverty Level groups.
 
-### C. Metrics & Plots for RQ1
+- [x] **Compare tariff impacts**  
+  Identified winners and losers under TOU vs flat and dynamic vs flat/TOU; quantified bill changes and percentage of households benefiting from each alternative tariff.
 
-**Metrics (compute all 3):**
-- **Cost recovery ratio:** `total_revenue / total_cost` for each pricing model (target: close to 1.0 for revenue neutrality).
-- **Peak reduction (vs. flat baseline):** `(Peak_flat - Peak_tariff) / Peak_flat` × 100% for IBR, ToU, and RTP.
-- **Economic efficiency score:** Combined metric incorporating cost recovery accuracy and peak reduction effectiveness.
+- [x] **Visualize cost per kWh**  
+  Analyzed effective cost per kWh by income group for each tariff to understand rate progressivity.
 
-**Additional metrics:**
-- **Load factor:** `average_load / peak_load` by tariff (higher is better for grid efficiency).
-- **Revenue volatility:** Standard deviation of monthly revenues across the year by tariff.
-- **Price signal alignment:** Correlation between prices and system marginal costs (particularly for ToU and RTP).
+### C. Completed Analysis
 
-**Plots:**
-- **Cost recovery comparison:** Bar chart showing revenue, cost, and revenue/cost ratio for each pricing model.
-- **System peak demand:** Bar chart comparing peak demand (kW) across all four tariff types.
-- **Aggregate load curves:** Line plots of average daily load profiles by tariff (overlay weekday/weekend if applicable).
-- **Load factor by tariff:** Bar chart showing load factors for each pricing model.
-- *(Optional)* **Efficiency scorecard:** Radar/spider chart comparing all four tariffs across multiple efficiency dimensions.
+**Visualizations:**
+- Annual bill distributions (histograms and boxplots) for all three tariffs
+- Sample building time-series load profiles with overlaid pricing periods
+- Annual bills by Federal Poverty Level (boxplots for each tariff)
+- Cost per kWh by income group (boxplots showing effective rates)
+- Winner/loser analysis comparing bill changes between tariffs
+- Correlation analysis between tariff costs
 
-### D. Nice-to-Have Extras for RQ1 (If Time Allows)
-
-- **Seasonal analysis:** Compare efficiency metrics across summer vs. winter months to assess seasonal performance differences.
-- **Sensitivity analysis:** Test how efficiency metrics change with different cost assumptions (e.g., higher capacity costs, different marginal cost profiles).
-- **Simple price elasticity:** Model modest demand response (5-10% of flexible load shifting) under ToU/RTP and recalculate efficiency gains.
-- **Inter-utility comparison:** If data available, compare how the same tariff types perform in different utility service territories.
-- **Marginal vs. average pricing:** Analyze efficiency differences between marginal-cost-based and average-cost-based rate structures.
+**Analytical Methods:**
+- Descriptive statistics (mean, median, percentiles) for annual bills under each tariff
+- Comparative analysis identifying percentage of households that save/lose money under alternative tariffs
+- Quantile-based analysis to exclude extreme outliers from visualizations
+- Effective rate calculation (annual cost / annual kWh) to understand rate structure impacts
 
 ---
 
@@ -92,28 +69,16 @@ Historically, residential customers have paid for electricity using flat tariffs
 
 **Goal:** Analyze how different pricing models (flat, TOU, dynamic) distribute electricity bills and energy burdens across demographic household groups (income levels, tenure status, urban/suburban/rural) and identify which groups face disproportionate costs under each tariff structure.
 
-### A. Dataset / Feature Requirements
+### A. Data Sources
 
-- Same household load profiles as RQ1.
-- Current pricing model data (focus on the dominant/default tariff in the study region, e.g., flat or ToU).
-- Household demographic and structural attributes:
-  - **Income level:** Annual household income or income bracket (e.g., <$25k, $25k-$50k, $50k-$100k, >$100k).
-  - **Tenure status:** Renter vs. homeowner.
-  - **Region/climate zone:** Geographic location or climate zone (e.g., hot-dry, cold, temperate).
-  - **Building characteristics:** Square footage, age, insulation level (if available).
-  - *(Optional)* Urban/suburban/rural classification.
-- Income distribution data (e.g., from RECS, Census) to assign realistic income values.
-
-**Minimum schema per household:**
-```text
-household_id
-load_profile (time series)
-annual_income
-income_bracket (low/middle/high)
-renter_owner
-region/climate_zone
-building_sqft
-```
+- **Load profiles and bills:** From RQ1 analysis (annual bills under flat, TOU, dynamic tariffs)
+- **Demographic attributes** from NREL ResStock metadata:
+  - Representative income (proxy for household income)
+  - Federal Poverty Level categories (0-100%, 100-150%, 150-200%, 200-300%, 300-400%, 400%+)
+  - Tenure status (owner vs. renter)
+  - PUMA metro status (urban/principal city, suburban, rural/not in metro)
+  - County and PUMA geographic identifiers
+  - Building type (single-family detached/attached, multi-family, mobile home)
 
 ### B. Steps to Answer RQ2
 
@@ -145,130 +110,111 @@ building_sqft
   - 96.9% of 0-100% FPL households exceed 6% burden under flat tariff
   - Renters face 2× higher burden than owners (35.4% vs 17.2% exceed 6% under flat)
   - Rural households face highest burden (38.9% exceed 6% under flat vs 22.3% suburban)
-### C. Metrics & Plots for RQ2
 
-**Metrics (compute all):**
-- **Energy burden by group:** Mean and median `(annual_bill / annual_income) × 100%` for each demographic segment.
-- **High-burden prevalence:** Fraction of households in each group with energy burden ≥6% and ≥10%.
-- **Disparity ratios:**
-  - Low-income vs. high-income average burden ratio.
-  - Renter vs. owner average bill ratio.
-  - Regional/climate burden differences.
-- **Inequality metrics:**
-  - Gini coefficient of bills across all households.
-  - Gini coefficient of energy burdens.
-  - Coefficient of variation of bills by group.
+- [x] **Analyze tariff progressivity**  
+  Computed progressivity index (slope of cost vs. income relationship) showing flat rate is most progressive, dynamic pricing is least progressive.
 
-**Plots:**
-- **Bill distribution:** Histogram or kernel density plot of annual bills across all households; optionally overlay by income group.
-- **Average bills by income group:** Grouped bar chart showing mean annual bills for low/middle/high-income households.
-- **Energy burden by group:** Grouped bar chart of mean energy burden (%) by income level, tenure status, and region.
-- **High-burden households:** Stacked or grouped bar chart showing percentage of households exceeding 6% and 10% burden thresholds, by group.
-- **Box plots by group:** Box-and-whisker plots of bill distributions for each demographic segment.
-- *(Optional)* **Burden vs. consumption scatter:** Scatter plot of energy burden vs. total kWh consumption, colored by income group.
-- *(Optional)* **Inequality summary:** Bar chart comparing Gini coefficients of bills and burdens.
+- [x] **Create geographic visualizations**  
+  Generated choropleth maps showing energy consumption and PIU across Massachusetts counties (13/14 with data) and PUMA regions (45/52 with data).
+### C. Completed Analysis
 
-### D. Nice-to-Have Extras for RQ2 (If Time Allows)
+**Energy Burden Calculations:**
+- PIU (Percentage of Income for Utilities) calculated for all households under all three tariffs
+- Formula: `(annual_bill / annual_income) × 100%`
+- Summary statistics by Federal Poverty Level, tenure, and metro status
+- Boxplots showing PIU distributions across demographic groups
+- High-burden prevalence analysis using 3% and 6% thresholds
+- PIU vs. income scatter plots to visualize inverse relationship
 
-- **Intersectional analysis:** Examine intersections of demographics (e.g., low-income renters in hot climates) to identify most vulnerable subgroups.
-- **Variance decomposition:** Use ANOVA or regression to quantify how much of the variation in bills/burdens is explained by income, tenure, region, building characteristics, etc.
-- **Temporal patterns:** Analyze monthly bill and burden variations to identify seasonal hardship patterns.
-- **Geographic visualization:** If spatial data available, create maps showing average bills or energy burdens by ZIP code, county, or climate zone.
-- **Burden sensitivity:** Test how burden distributions change with different income data sources or burden thresholds.
-- **Comparison to other utilities:** Compare distributional outcomes to similar studies or utility benchmarks to contextualize findings.
+**Distributional Analysis:**
+- PIU reduction analysis comparing dynamic/TOU vs. flat rates
+- Building type analysis showing burden patterns across housing types
+- Regional statistics aggregated by county (average energy consumption, total consumption, average PIU)
+- Comparison of burden prevalence across tenure and metro status categories
 
----
+**Geographic Visualizations:**
+- County-level choropleth maps (4 maps: avg energy, total energy, PIU flat, PIU dynamic)
+- PUMA-level choropleth maps (same 4 metrics at finer geographic resolution)
+- Downloaded Census Bureau TIGER shapefiles for Massachusetts counties and PUMA boundaries
+- Geographic matching logic to align building data with boundary files
+- Summary tables showing statistics for regions with available data
 
-## RQ3 – Efficiency-Fairness Trade-offs
-
-**Goal:** Evaluate whether different pricing models can achieve both efficiency (from RQ1) and fairness (from RQ2) simultaneously, or whether trade-offs between these objectives are unavoidable; identify which models (if any) perform reasonably well on both dimensions.
-
-### A. Dataset / Feature Requirements
-
-- All data from RQ1 and RQ2:
-  - Household load profiles and demographic attributes.
-  - Bills computed under all four pricing models (flat, IBR, ToU, RTP).
-  - Efficiency metrics (cost recovery, peak reduction) from RQ1.
-  - Fairness metrics (energy burdens, disparity ratios) from RQ2.
-- Monthly bills per household and tariff for temporal analysis.
-- Combined efficiency-fairness dataset linking each tariff to its performance on both dimensions.
-
-**Minimum schema per (household, tariff):**
-```text
-household_id
-tariff_type
-monthly_bills[1..12]
-annual_bill
-annual_income
-energy_burden
-group_labels (income_group, renter_owner, region)
-```
-
-**Summary metrics per tariff:**
-```text
-tariff_type
-cost_recovery_ratio
-peak_reduction_pct
-mean_energy_burden
-energy_burden_disparity_ratio
-high_burden_share
-```
-
-### B. Steps to Answer RQ3
-
-- [ ] **Compile efficiency metrics from RQ1**  
-  For each pricing model, collect key efficiency metrics (cost recovery ratio, peak reduction %, load factor).
-
-- [ ] **Compile fairness metrics from RQ2**  
-  For each pricing model, collect key fairness metrics (mean energy burden by income group, burden disparity ratio, high-burden share).
-
-- [ ] **Normalize and score pricing models**  
-  Create normalized scores (0-1 or 0-100) for each metric to enable comparison; optionally create composite efficiency and fairness scores.
-
-- [ ] **Visualize efficiency-fairness trade-offs**  
-  Plot pricing models on 2D scatter plots with efficiency on one axis and fairness on the other; identify Pareto-optimal or near-optimal models.
-
-- [ ] **Assess trade-off severity**  
-  Calculate correlations between efficiency and fairness metrics; determine if high-efficiency models systematically perform worse on fairness (negative correlation) or if some models achieve both.
-
-- [ ] **Identify balanced pricing models**  
-  Use multi-criteria decision analysis (e.g., weighted scoring, dominance analysis) to identify which models perform "reasonably well" on both objectives; test sensitivity to different weights on efficiency vs. fairness.
-
-- [ ] **Analyze distributional impacts of efficient tariffs**  
-  For the most economically efficient tariff(s), conduct detailed distributional analysis to understand which groups would benefit or suffer if that tariff were implemented universally.
-### C. Metrics & Plots for RQ3
-
-**Metrics:**
-- **Composite efficiency score:** Weighted combination of cost recovery ratio and peak reduction (normalized).
-- **Composite fairness score:** Weighted combination of mean energy burden, burden disparity ratio, and high-burden share (normalized, lower burden = higher score).
-- **Trade-off ratio:** Ratio of efficiency score to fairness score for each tariff.
-- **Pareto efficiency:** Identify tariffs that are not dominated by any other tariff on both dimensions.
-- **Correlation coefficient:** Between efficiency and fairness scores across all tariff types.
-
-**Plots:**
-- **Efficiency vs. Fairness scatter plot:** X-axis = efficiency score, Y-axis = fairness score; plot all four pricing models; annotate Pareto-optimal models.
-- **Multi-metric comparison:** Radar/spider chart comparing all four tariffs across 4-6 key metrics (cost recovery, peak reduction, mean burden, burden disparity, etc.).
-- **Trade-off heatmap:** Heatmap showing each tariff's performance (color-coded) across efficiency and fairness dimensions.
-- **Sensitivity analysis:** Line plots showing how tariff rankings change as weights on efficiency vs. fairness are varied.
-- **Group-specific impacts:** For each tariff, show side-by-side bar charts of efficiency gains vs. fairness impacts (e.g., peak reduction % vs. burden increase % for low-income households).
-- *(Optional)* **Scenario comparison:** Panel plots showing how trade-offs shift under different assumptions (e.g., with vs. without demand response, different cost structures).
-
-### D. Nice-to-Have Extras for RQ3 (If Time Allows)
-
-- **Multi-objective optimization framing:** Formulate as a constrained optimization problem (e.g., "maximize efficiency subject to fairness constraints") and identify feasible tariff designs.
-- **Hybrid tariff design:** Explore whether combining elements of different tariffs (e.g., ToU with low-income discount, IBR with peak pricing) can improve trade-offs.
-- **Stakeholder preference simulation:** Model how different stakeholder groups (utilities, low-income advocates, environmental groups) would rank tariffs based on their priorities.
-- **Dynamic analysis:** Examine how efficiency-fairness trade-offs evolve over multiple years or under changing grid conditions (e.g., higher renewable penetration).
-- **Policy constraint scenarios:** Test which tariffs meet specific policy goals (e.g., "≥15% peak reduction AND <20% of households with high burden").
-- **Cost of fairness:** Quantify the efficiency loss (in $/year or % peak reduction) required to achieve specific fairness improvements.
-- **Alternative fairness metrics:** Test how conclusions change using different fairness definitions (e.g., Rawlsian focus on worst-off group vs. utilitarian focus on average burden).
+**Progressivity Analysis:**
+- Linear regression: Annual Cost = α + β·(Federal Poverty Level Group)
+- Progressivity index calculated as slope (β) for each tariff
+- Comparison showing relative progressivity across tariff structures
+- Visualization of cost trends and progressivity index bars
 
 ---
 
-## How to Use This README
+## Future Work
 
-- Treat each RQ section as a **mini-project** with its own data needs, computation steps, metrics, and plots.
-- At the start of the project, assign owners for each major chunk (e.g., data prep, tariff calculators, fairness metrics, plotting).
-- As you work, add checkboxes and implementation notes under each step so the README becomes a living roadmap and progress tracker.
+The following analyses could extend this work:
 
+**System-Level Efficiency Analysis:**
+- Aggregate household loads to compute system-level load curves
+- Calculate peak demand reduction by tariff type
+- Compute load factor and cost recovery metrics
+- Analyze revenue volatility across tariffs
+- Quantify price signal alignment with wholesale market costs
+
+**Temporal Analysis:**
+- Monthly and seasonal variation in bills and energy burdens
+- Identify periods of peak financial hardship for vulnerable groups
+- Analyze bill volatility under dynamic pricing across seasons
+
+**Statistical Modeling:**
+- Gini coefficient calculations for bills and energy burdens
+- Formal variance decomposition (ANOVA) to quantify demographic factors' contribution to bill variation
+- Intersectional analysis (e.g., low-income renters in rural areas)
+- Demand response modeling with price elasticity assumptions
+
+**Efficiency-Fairness Trade-offs:**
+- Multi-criteria analysis combining efficiency metrics (from system analysis) with fairness metrics
+- Pareto frontier identification for tariff design
+- Sensitivity analysis on different policy weights
+
+**Policy Extensions:**
+- Hybrid tariff design (e.g., TOU with low-income discounts)
+- Bill assistance program targeting based on burden analysis
+- Rate design modifications to improve progressivity while maintaining efficiency
+
+---
+
+## Repository Structure
+
+- **`RQ.ipynb`**: Main Jupyter notebook containing all data loading, bill calculations, distributional analysis, and visualizations
+- **`loadOEDIData.py`**: Module for loading NREL ResStock metadata and time-series data
+- **`tariff_calculator.py`**: Optimized bill calculation functions for flat, TOU, and dynamic pricing
+- **`loadGeoData.py`**: Functions for loading Census Bureau shapefiles (counties and PUMA boundaries)
+- **`GeoScript.py`**: Standalone script to download and extract geographic boundary data
+- **`load_rtp.py`**: Script to convert ISO-NE RT-LMP data from Excel to CSV format
+- **`OEDIDSampleScript.py`**: Script to download sample of individual building timeseries from NREL ResStock
+- **`OEDIDExtrasScript.py`**: Script to download metadata, dictionaries, and state-level aggregates from NREL ResStock
+- **`2018_smd_hourly.xlsx`**: ISO New England 2018 hourly RT-LMP data (source for dynamic pricing)
+- **`RT_LMP_kWh.csv`**: Processed real-time locational marginal pricing data ($/kWh) for 2018
+- **`README_OEDI.txt`**: Documentation for NREL ResStock dataset structure and data access
+- **`OEDIDataset/`**: NREL ResStock data (downloaded via OEDIDSampleScript.py and OEDIDExtrasScript.py)
+- **`Shapefiles/`**: Census geographic boundaries for Massachusetts (downloaded via GeoScript.py)
+
+---
+
+## Setup Instructions
+
+1. **Clone repository**: Clone this repository inside a parent folder (e.g., `aidms/`). The scripts will create `OEDIDataset/` and `Shapefiles/` directories outside the git-tracked project folder to avoid syncing large data files.
+
+2. **Install necessary libraries**: The project requires pandas, pyarrow, geopandas, numpy, and matplotlib. Install all dependencies with:
+   ```
+   pip install pandas pyarrow geopandas numpy matplotlib
+   ```
+
+3. **Download timeseries data**: Run `python OEDIDSampleScript.py` to download individual building timeseries (default: 100 buildings from Massachusetts). Edit `N_FILES` in the script to download more or fewer buildings.
+
+4. **Download metadata**: Run `python OEDIDExtrasScript.py` to download ResStock metadata, data dictionaries, and state-level aggregates.
+
+5. **Download shapefiles**: Run `python GeoScript.py` to download Census Bureau geographic boundaries for Massachusetts (counties and PUMA regions).
+
+6. **Run analysis notebook**: Open `RQ.ipynb` and:
+   - Edit Cell 6 to set the number of buildings to sample for analysis
+   - Edit Cell 11: Set `load_full = True` to load all downloaded timeseries, or `False` to load only the sampled buildings
 
